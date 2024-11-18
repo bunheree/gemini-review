@@ -33,7 +33,7 @@ After having the 2 above keys, at the github repository, go to
 ## Example Usage
 
 ```yaml
-name: "Review the code with Gemini"
+nname: "Review the code with Gemini"
 
 on:
   pull_request:
@@ -66,12 +66,19 @@ jobs:
           } >> $GITHUB_OUTPUT
 
       - name: Review the code with Gemini
-        uses: bunheree/gemini-review@v1.0.1
+        uses: bunheree/gemini-review@v1.0.2
+        env: # Set environment variables here
+          GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }} # Pass the secret as an environment variable
+          GITHUB_TOKEN: ${{ secrets.GIT_TOKEN_KEY }}
+          GITHUB_REPOSITORY: ${{ github.repository }}
+          GITHUB_PULL_REQUEST_NUMBER: ${{ github.event.pull_request.number }}
+          GIT_COMMIT_HASH: ${{ github.event.pull_request.head.sha }}
         with:
           model: "gemini-1.5-pro-latest"
-          pull_request_diff: ${{ steps.get_diff.outputs.pull_request_diff }}
+          pull_request_diff: |-
+            ${{ steps.get_diff.outputs.pull_request_diff }}
+          pull_request_chunk_size: "3500"
+          extra_prompt: ""
           log_level: "DEBUG"
-        env:
-          GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
-          GITHUB_TOKEN: ${{ secrets.GIT_TOKEN_KEY }}
+
 ```
