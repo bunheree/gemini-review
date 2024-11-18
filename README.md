@@ -20,11 +20,15 @@ This action reviews code in pull requests using Gemini.
 
 - `review_comments`: Review comments from Gemini.
 
+![Review - comment PR](/images/comment-PR.png)
+
 ## Example Usage
 
 ### 1. Create `GEMINI_API_KEY` and `GIT_TOKEN_KEY`
 
-After having the 2 above keys, at the github repository, go to **Settings** > **Secrets and Variales** > **Actions** > ***Add 2 new secret keys***.
+After having the 2 above keys, at the github repository, go to 
+
+> **Settings** > **Secrets and Variales** > **Actions** > ***Add 2 new secret keys***.
 
 ## Example Usage
 
@@ -44,13 +48,22 @@ jobs:
     steps:
       - uses: actions/checkout@v3
 
-      - name: Get diff of the pull request
+      - name: "Get diff of the pull request"
         id: get_diff
-        run: |
-          git diff origin/main > diff.txt
-          echo "pull_request_diff<<EOF" >> $GITHUB_OUTPUT
-          cat diff.txt >> $GITHUB_OUTPUT
-          echo "EOF" >> $GITHUB_OUTPUT
+        shell: bash
+        env:
+          PULL_REQUEST_HEAD_REF: "${{ github.event.pull_request.head.ref }}"
+          PULL_REQUEST_BASE_REF: "${{ github.event.pull_request.base.ref }}"
+        run: |-
+          git fetch origin "${{ env.PULL_REQUEST_HEAD_REF }}"
+          git fetch origin "${{ env.PULL_REQUEST_BASE_REF }}"
+          git checkout "${{ env.PULL_REQUEST_HEAD_REF }}"
+          git diff "origin/${{ env.PULL_REQUEST_BASE_REF }}" > "diff.txt"
+          {
+            echo "pull_request_diff<<EOF";
+            cat "diff.txt";
+            echo 'EOF';
+          } >> $GITHUB_OUTPUT
 
       - name: Review the code with Gemini
         uses: bunheree/gemini-review@v1.0.1
