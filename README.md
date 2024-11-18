@@ -6,28 +6,29 @@
 <a href="#"><img src="https://img.shields.io/badge/license-MIT-yellow" alt="License"></a>
 </p>
 
-## Quick Start
+This action reviews code in pull requests using Gemini.
 
-### 1. Create `package.json`
+## Inputs
 
-```json
-{
-    "name": "project_name",
-    "main": "index.html",
-    "devDependencies": {
-        "@types/node": "^22.9.0"
-    },
-    "dependencies": {}
-}
-```
+- `model`: The model to use for the code review. Default: `gemini-1.5-pro-latest`.
+- `pull_request_diff`: The diff of the pull request.
+- `pull_request_chunk_size`: (Optional) The chunk size for review. Default: `3500`.
+- `extra_prompt`: (Optional) Additional context for the review.
+- `log_level`: (Optional) Log level for the action. Default: `DEBUG`.
 
-### 2. Create `GEMINI_API_KEY` and `GIT_TOKEN_KEY`
+## Outputs
+
+- `review_comments`: Review comments from Gemini.
+
+## Example Usage
+
+### 1. Create `GEMINI_API_KEY` and `GIT_TOKEN_KEY`
 
 After having the 2 above keys, at the github repository, go to **Settings** > **Secrets and Variales** > **Actions** > ***Add 2 new secret keys***.
 
-### 3. Create `.github/workflows/[gemini-review-code].yml`
+## Example Usage
 
-```yml
+```yaml
 name: "Review the code with Gemini"
 
 on:
@@ -43,39 +44,21 @@ jobs:
     steps:
       - uses: actions/checkout@v3
 
-      - name: Install dependencies
-        run: npm install
-
-      - name: "Get diff of the pull request"
+      - name: Get diff of the pull request
         id: get_diff
-        shell: bash
-        env:
-          PULL_REQUEST_HEAD_REF: "${{ github.event.pull_request.head.ref }}"
-          PULL_REQUEST_BASE_REF: "${{ github.event.pull_request.base.ref }}"
-        run: |-
-          git fetch origin "${{ env.PULL_REQUEST_HEAD_REF }}"
-          git fetch origin "${{ env.PULL_REQUEST_BASE_REF }}"
-          git checkout "${{ env.PULL_REQUEST_HEAD_REF }}"
-          git diff "origin/${{ env.PULL_REQUEST_BASE_REF }}" > "diff.txt"
-          {
-            echo "pull_request_diff<<EOF";
-            cat "diff.txt";
-            echo 'EOF';
-          } >> $GITHUB_OUTPUT
+        run: |
+          git diff origin/main > diff.txt
+          echo "pull_request_diff<<EOF" >> $GITHUB_OUTPUT
+          cat diff.txt >> $GITHUB_OUTPUT
+          echo "EOF" >> $GITHUB_OUTPUT
 
-      - name: "Review the code with Gemini"
-        uses: ./
-        env: # Set environment variables here
-          GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
-          GITHUB_TOKEN: ${{ secrets.GIT_TOKEN_KEY }}
-          GITHUB_REPOSITORY: ${{ github.repository }}
-          GITHUB_PULL_REQUEST_NUMBER: ${{ github.event.pull_request.number }}
-          GIT_COMMIT_HASH: ${{ github.event.pull_request.head.sha }}
+      - name: Review the code with Gemini
+        uses: bunheree/gemini-review@v1.0.1
         with:
           model: "gemini-1.5-pro-latest"
-          pull_request_diff: |-
-            ${{ steps.get_diff.outputs.pull_request_diff }}
-          pull_request_chunk_size: "3500"
-          extra_prompt: ""
+          pull_request_diff: ${{ steps.get_diff.outputs.pull_request_diff }}
           log_level: "DEBUG"
+        env:
+          GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
+          GITHUB_TOKEN: ${{ secrets.GIT_TOKEN_KEY }}
 ```
